@@ -1,9 +1,15 @@
 name: Build, Test and Publish
 
+# The default branch is main; this used to trigger on master, which does not
+# exist, so no job ever ran (taskforge-2814). Pull requests run Test only;
+# Build and Publish push the image and the chart, so they run on push to main.
 on:
   push:
     branches:
-      - master
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   Test:
@@ -40,6 +46,7 @@ jobs:
 
   Build:
     needs: Test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted-linux
 
     steps:
@@ -51,8 +58,10 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          # Org-wide secrets (visibility ALL). DOCKERHUB_USERNAME/DOCKERHUB_TOKEN
+          # exist in neither the repo nor the org (taskforge-2814).
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Docker build
         run: |
