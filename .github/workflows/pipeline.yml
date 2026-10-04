@@ -18,15 +18,19 @@ jobs:
         with:
           # GOCACHE/GOMODCACHE already live on the runner's persistent shared /cache; setup-go's cache step only re-archives it (6-27 min on-prem).
           cache: false
-          go-version: "1.22"
+          # 1.25.12 is pre-populated in the ARC runner image's tool cache, so
+          # setup-go resolves it locally instead of downloading a toolchain on
+          # every run (taskforge-2674). go.mod's 1.22.4 builds fine under it.
+          go-version: "1.25.12"
 
-      - name: Install static analysis tools
+      # gosec is baked into the ARC runner image (SupportTools/ci-runners), so it
+      # is not `go install`ed at job time (taskforge-2674). The other four tools
+      # this step used to install @latest (golint, staticcheck, go-mod-outdated,
+      # deadcode) were never invoked by this workflow and are dropped.
+      - name: Show baked tool versions
         run: |
-          go install golang.org/x/lint/golint@latest
-          go install honnef.co/go/tools/cmd/staticcheck@latest
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          go install github.com/psampaz/go-mod-outdated@latest
-          go install github.com/remyoudompheng/go-misc/deadcode@latest
+          go version
+          gosec -version
 
       - name: Dependency management
         run: |
@@ -77,16 +81,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4.2.0
+      # helm is baked into the ARC runner image; no azure/setup-helm download
+      # (taskforge-2674, TaskForge docs/CI_RUNNER_CONTRACT.md "No job-time downloads").
+      - name: Show baked helm version
+        run: helm version
 
       - name: Helm Lint
         run: helm lint charts/rancherresourcescanner/
-
-      - name: Set up Helm
-        uses: azure/setup-helm@v1
-        with:
-          version: v3.7.1
 
       - name: Package Helm chart
         run: |
