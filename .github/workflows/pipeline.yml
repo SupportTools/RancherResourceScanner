@@ -13,16 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          # GOCACHE/GOMODCACHE already live on the runner's persistent shared /cache; setup-go's cache step only re-archives it (6-27 min on-prem).
-          cache: false
-          # 1.25.12 is pre-populated in the ARC runner image's tool cache, so
-          # setup-go resolves it locally instead of downloading a toolchain on
-          # every run (taskforge-2674). go.mod's 1.22.4 builds fine under it.
-          go-version: "1.25.12"
-
+      # No actions/setup-go step: the ARC runner image (SupportTools/ci-runners
+      # Dockerfile.arc2) bakes Go at /usr/local/go on PATH with GOTOOLCHAIN=local,
+      # so the job uses that toolchain and never downloads one (taskforge-2674).
+      # Pinning a setup-go version would download Go whenever it drifts from the
+      # image's baked GO_VERSION; go.mod's go 1.22.4 builds under the baked Go.
+      #
       # gosec is baked into the ARC runner image (SupportTools/ci-runners), so it
       # is not `go install`ed at job time (taskforge-2674). The other four tools
       # this step used to install @latest (golint, staticcheck, go-mod-outdated,
